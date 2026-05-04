@@ -1,0 +1,208 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  username        String    @unique
+  email           String    @unique
+  passwordHash    String
+  hashedRefreshToken String?
+  createdAt       DateTime  @default(now())
+  profileImageKey String?
+  profileImageUrl String?
+
+  forums          Forum[]
+  posts           Post[]
+  comments        Comment[]
+  postVotes       PostVote[]
+  scraps          Scrap[]
+  chatParticipants ChatParticipant[]
+  sentMessages     Message[]
+}
+
+model Forum {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  title     String    @unique
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  posts     Post[]
+
+  // @@index([userId])
+}
+
+model Post {
+  id           Int          @id @default(autoincrement())
+  userId       Int
+  forumId      Int
+  title        String
+  content      String
+  commentCount Int          @default(0)
+  voteCount    Int          @default(0)
+  scrapCount   Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  isDeleted    Boolean      @default(false)
+  deletedAt    DateTime?
+
+  user         User         @relation(fields: [userId], references: [id])
+  forum        Forum        @relation(fields: [forumId], references: [id])
+
+  images       ImageAsset[]
+  comments     Comment[]
+  postVotes    PostVote[]
+  scraps       Scrap[]
+  rankingItems  RankingItem[]
+
+  // @@index([userId])
+  // @@index([forumId])
+}
+
+model Comment {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  postId     Int
+  content    String
+  createdAt  DateTime  @default(now())
+  isDeleted  Boolean   @default(false)
+  deletedAt  DateTime?
+
+  user       User      @relation(fields: [userId], references: [id])
+  post       Post      @relation(fields: [postId], references: [id])
+
+  // @@index([userId])
+  // @@index([postId])
+}
+
+model ImageAsset {
+  id        Int       @id @default(autoincrement())
+  postId    Int
+  key       String    @unique
+  url       String
+  createdAt DateTime  @default(now())
+
+  post      Post      @relation(fields: [postId], references: [id])
+
+  // @@index([postId])
+}
+
+model PostVote {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  postId    Int
+  voteDate  String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId, voteDate])
+}
+
+model Scrap {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  postId    Int
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+  // @@index([postId])
+}
+
+enum RankingType {
+  TREND
+  HOT
+  BEST
+}
+
+model RankingItem {
+  id            Int          @id @default(autoincrement())
+  rankingType   RankingType
+  postId        Int
+  score         Float
+  calculatedAt  DateTime     @default(now())
+
+  post          Post         @relation(fields: [postId], references: [id])
+
+  // @@index([rankingType, calculatedAt])
+  // @@index([rankingType, dateKey, rank])
+  // @@index([rankingType, hourKey, rank])
+
+  @@unique([rankingType, postId])
+}
+
+model ChatRoom {
+  id                 Int               @id @default(autoincrement())
+  directKey          String            @unique
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  lastMessageId      Int?
+  lastMessageAt      DateTime?
+  lastMessagePreview String?
+
+  participants       ChatParticipant[]
+  messages           Message[]
+
+  // @@index([lastMessageAt])
+}
+
+model ChatParticipant {
+  id                Int       @id @default(autoincrement())
+  roomId            Int
+  userId            Int
+  joinedAt          DateTime  @default(now())
+
+  lastReadMessageId Int?
+  lastReadAt        DateTime?
+
+  unreadCount       Int       @default(0)
+  isHidden          Boolean   @default(false)
+
+  room              ChatRoom  @relation(fields: [roomId], references: [id])
+  user              User      @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+  @@index([userId])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+model Message {
+  id         Int          @id @default(autoincrement())
+  roomId      Int
+  senderId    Int
+  type        MessageType @default(TEXT)
+  content     String?
+  isDeleted   Boolean     @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  room        ChatRoom    @relation(fields: [roomId], references: [id])
+  sender      User        @relation(fields: [senderId], references: [id])
+
+  // @@index([roomId, createdAt])
+  // @@index([senderId, createdAt])
+}
