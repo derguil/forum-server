@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PostRepository } from './post.repository';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -15,6 +15,8 @@ import { CommentRepository } from '../comments/comment.repository';
 
 @Injectable()
 export class PostsService {
+  private readonly logger = new Logger(PostsService.name);
+
   constructor(
     private readonly forumRepository: ForumRepository,
     private readonly postRepository: PostRepository,
@@ -63,6 +65,8 @@ export class PostsService {
         })),
       );
     }
+
+    this.logger.debug('글 생성\n' + '작성자: ' + userId + '\n글 id: ' + createdPost.id);
 
     return createdPost;
   }
@@ -145,7 +149,7 @@ export class PostsService {
     const today = new Date().toISOString().slice(0, 10);
     const already = await this.postVoteRepository.findPostVoteByUserAndPost(userId, postId, today)
     if (already) {
-      throw new ConflictException('공감?� 1??1?�만 가?�합?�다.');
+      throw new ConflictException('공감?� 1??1?�만 가?�합?�다.');
     }
     
     return this.prisma.$transaction(async (tx) => {
