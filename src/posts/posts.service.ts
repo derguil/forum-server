@@ -66,8 +66,6 @@ export class PostsService {
       );
     }
 
-    this.logger.debug('글 생성\n' + '작성자: ' + userId + '\n글 id: ' + createdPost.id);
-
     return createdPost;
   }
 

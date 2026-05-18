@@ -7,7 +7,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${DATABASE_PASSWORD}
       MYSQL_DATABASE: ${DATABASE_NAME}
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -17,9 +17,7 @@ services:
       retries: 10
 
   server:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: derguil/forum_docker_hub_repository:latest
     container_name: forum-server
     restart: unless-stopped
     env_file:
