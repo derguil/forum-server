@@ -1,12 +1,32 @@
 import { NestFactory } from '@nestjs/core';
+import { WinstonModule } from 'nest-winston';
+import * as winston from 'winston';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import cookieParser from 'cookie-parser';
+import * as dotenv from 'dotenv';
+
+dotenv.config({
+  path: process.env.NODE_ENV === 'production' ? '.env' : '.env.test',
+  override: true,
+});
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    // NestJS 내부 로그(시작, 라우트 등록 등)도 Winston으로 출력
+    logger: WinstonModule.createLogger({
+      transports: [
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.json(),
+          ),
+        }),
+      ],
+    }),
+  });
   const configService = app.get(ConfigService);
   app.setGlobalPrefix('api');
   app.use(cookieParser())
