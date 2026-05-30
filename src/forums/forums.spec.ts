@@ -32,6 +32,15 @@ describe('ForumsService', () => {
           provide: ForumRepository,       // 실제 ForumRepository 대신
           useValue: mockForumRepository,  // mock 객체를 주입
         },
+        {
+          provide: 'winston',
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
