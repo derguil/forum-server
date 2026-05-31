@@ -16,9 +16,9 @@ services:
       timeout: 5s
       retries: 10
 
-  server:
+  app-1:
     image: derguil/forum_docker_hub_repository:latest
-    container_name: forum-server
+    container_name: app-1
     restart: unless-stopped
     env_file:
       - .env
@@ -27,11 +27,95 @@ services:
       DATABASE_PORT: 3306
       DATABASE_URL: mysql://${DATABASE_USER}:${DATABASE_PASSWORD}@db:3306/${DATABASE_NAME}
       NODE_ENV: production
+      SERVER_ID: server-1
     ports:
-      - "${PORT:-3000}:3000"
+      - "3001:3000"
     depends_on:
       db:
         condition: service_healthy
 
+  app-2:
+    image: derguil/forum_docker_hub_repository:latest
+    container_name: app-2
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_URL: mysql://${DATABASE_USER}:${DATABASE_PASSWORD}@db:3306/${DATABASE_NAME}
+      NODE_ENV: production
+      SERVER_ID: server-2
+    ports:
+      - "3002:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app-3:
+    image: derguil/forum_docker_hub_repository:latest
+    container_name: app-3
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_URL: mysql://${DATABASE_USER}:${DATABASE_PASSWORD}@db:3306/${DATABASE_NAME}
+      NODE_ENV: production
+      SERVER_ID: server-3
+    ports:
+      - "3003:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app-1
+      - app-2
+      - app-3
+    restart: unless-stopped
+  
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+      - ./loki-config.yml:/etc/loki/local-config.yaml:ro
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "4000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/loki.yml:ro
+    restart: unless-stopped
+
 volumes:
   mysql_data:
+  loki-data:
+  grafana-data:
