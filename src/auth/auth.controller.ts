@@ -41,7 +41,7 @@ export class AuthController {
       httpOnly: true,
       secure: false, // https에서만 (개발중이면 false 가능)
       sameSite: 'strict',
-      path: '/api/auth/refresh',
+      path: '/api/auth',
       maxAge: 3 * 60 * 1000 * 60, //3hour
     });
 
@@ -66,7 +66,7 @@ export class AuthController {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
-      path: '/api/auth/refresh',
+      path: '/api/auth',
       maxAge: 3 * 60 * 1000 * 60, //3hour
     });
 
@@ -91,6 +91,7 @@ export class AuthController {
       httpOnly: true,
       secure: false,
       sameSite: 'lax',
+      path: '/api/auth',
     });
     
     return {

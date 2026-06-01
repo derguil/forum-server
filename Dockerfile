@@ -28,10 +28,12 @@ EXPOSE 3000
 
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
 
-# 1. 이미지 빌드
+# # 1. 이미지 빌드
 # docker build -t derguil/forum_docker_hub_repository:latest .
 
-# docker images
-
-# 2. Docker Hub 푸시
+# # 2. Docker Hub에 푸시
 # docker push derguil/forum_docker_hub_repository:latest
+
+# # 3. 컨테이너에서 새 이미지 pull 후 재시작
+# docker compose pull
+# docker compose up -d
