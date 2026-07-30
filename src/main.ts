@@ -1,12 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import cookieParser from 'cookie-parser';
 import * as dotenv from 'dotenv';
+import { RedisIoAdapter } from './events/adapters/redis-io.adapter';
 
 dotenv.config({
   path: process.env.NODE_ENV === 'production' ? '.env' : '.env.test',
@@ -14,6 +15,7 @@ dotenv.config({
 });
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, {
     // NestJS 내부 로그(시작, 라우트 등록 등)도 Winston으로 출력
     logger: WinstonModule.createLogger({
@@ -28,6 +30,24 @@ async function bootstrap() {
     }),
   });
   const configService = app.get(ConfigService);
+  const redisUrl = configService.get<string>('REDIS_URL');
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  if (redisUrl) {
+    try {
+      await redisIoAdapter.connectToRedis(redisUrl);
+    } catch (error) {
+      logger.warn(
+        `Redis adapter disabled. Failed to connect to REDIS_URL=${redisUrl}. Falling back to in-memory adapter.`,
+      );
+      logger.warn(error instanceof Error ? error.message : 'Unknown redis error');
+    }
+  } else {
+    logger.log('REDIS_URL is not set. Running Socket.IO with in-memory adapter.');
+  }
+
+  app.useWebSocketAdapter(redisIoAdapter);
+
   app.setGlobalPrefix('api');
   app.use(cookieParser())
   app.enableShutdownHooks();

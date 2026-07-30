@@ -1,98 +1,129 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# 📋 forum-server
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+에브리타임 커뮤니티(클론코딩) 서비스를 위한 백엔드 서버입니다. 게시판/게시글/댓글 같은 기본 커뮤니티 기능은 물론, 실시간 채팅과 인기글 랭킹 배치까지 포함한 프로덕션 레벨의 백엔드를 목표로 설계했습니다.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🌐 시스템 아키텍처
 
-## Description
+```
+                        ┌────────────┐
+                        │   Client   │
+                        └─────┬──────┘
+                              │
+                        ┌─────▼──────┐
+                        │   Nginx    │  (Load Balancer)
+                        └─────┬──────┘
+              ┌───────────────┼───────────────┐
+        ┌─────▼─────┐   ┌─────▼─────┐   ┌─────▼─────┐
+        │  app-1    │   │  app-2    │   │  app-3    │   NestJS (REST + WebSocket)
+        └─────┬─────┘   └─────┬─────┘   └─────┬─────┘
+              └───────────────┼───────────────┘
+                        ┌─────▼──────┐
+                        │   Redis    │  (Socket.IO Adapter Pub/Sub)
+                        └─────┬──────┘
+                        ┌─────▼──────┐        ┌────────────┐
+                        │   MySQL    │        │  AWS S3    │ (이미지 저장)
+                        └────────────┘        └────────────┘
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+        ┌────────────┐   ┌────────────┐   ┌────────────┐
+        │  Promtail  │──▶│    Loki    │──▶│  Grafana   │  (로그 수집/모니터링)
+        └────────────┘   └────────────┘   └────────────┘
 ```
 
-## Compile and run the project
+NestJS 앱 3개를 Docker Compose로 띄우고 Nginx가 앞단에서 로드밸런싱합니다. Socket.IO 이벤트는 Redis Adapter(pub/sub)로 인스턴스 간 동기화합니다. 모든 컨테이너 로그는 Promtail이 수집해 Loki에 저장하고, Grafana 대시보드로 시각화합니다.
 
-```bash
-# development
-$ npm run start
+## ⚙️ 기술 스택
 
-# watch mode
-$ npm run start:dev
+| 분류 | 기술 스택 |
+|---|---|
+| 언어 | TypeScript |
+| 프레임워크 | NestJS 11 |
+| 데이터 접근 | Prisma ORM |
+| 실시간 통신 | Socket.IO (WebSocket Gateway), Redis Adapter |
+| 인증/인가 | JWT (Access/Refresh Token), Passport |
+| 파일 저장 | AWS S3 |
+| 데이터베이스 | MySQL 8.4 |
+| 로깅 | Winston (JSON 구조화 로그) |
+| 배치/스케줄링 | @nestjs/schedule (Cron) |
+| 컨테이너 환경 | Docker, Docker Compose |
+| 배포 | Docker Hub → EC2 Pull 방식 |
+| 로드밸런싱 | Nginx |
+| 모니터링 | Loki, Promtail, Grafana |
 
-# production mode
-$ npm run start:prod
+## ✨ 주요 기능
+
+### 🔐 인증 및 사용자 관리
+- 회원가입/로그인: username·email 기반, bcrypt 비밀번호 해싱
+- JWT 기반 인증: Access Token + Refresh Token 발급 및 재발급(`/auth/refresh`)
+- Refresh Token 보안: DB에 평문 저장 대신 bcrypt 해시로 저장 후 검증
+- 로그아웃: Refresh Token 무효화 처리
+- 내 정보 관리: 닉네임/이메일/비밀번호 변경, 프로필 이미지 업로드(S3)
+
+### 📝 포럼 및 게시글
+- 포럼(게시판) 생성 및 목록/단건 조회
+- 게시글 CRUD, Soft Delete 지원(삭제 이력 보존)
+- 게시글 추천(1일 1회 제한 - `PostVote` 유니크 제약으로 처리)
+- 게시글 스크랩(북마크) 등록/해제
+- 게시글 이미지 첨부(S3 업로드 연동)
+
+### 💬 댓글
+- 댓글 작성/삭제 (Soft Delete)
+- 게시글별 댓글 수 실시간 카운트 캐싱
+
+### 🏆 랭킹
+- TREND / HOT / BEST 3종 랭킹 제공
+- 매시간 자동 실행되는 Cron 배치로 최근 1시간 활동 기반 TREND 랭킹 재계산
+
+### 💬 실시간 채팅
+- Socket.IO 기반 채팅방 입장/퇴장, 메시지 송수신
+- 안읽은 메시지 카운트, 마지막 메시지 미리보기
+- 메시지 읽음 처리 실시간 동기화
+
+### 🛠️ 인프라/운영
+- 요청 단위 구조화 로깅(Winston) → Loki/Grafana 대시보드 연동
+- Docker Compose 기반 다중 인스턴스 배포 및 Nginx 로드밸런싱
+- Prisma Migration으로 스키마 버전 관리
+
+## 📁 프로젝트 구조
+
+```
+forum-server/
+├── src/
+│   ├── main.ts                    # 애플리케이션 진입점 (Winston 로거, 글로벌 파이프/필터 설정)
+│   ├── app.module.ts               # 루트 모듈
+│   ├── auth/                       # 회원가입/로그인/JWT 발급·재발급/로그아웃
+│   ├── forums/                     # 포럼(게시판) 생성/조회
+│   ├── posts/                      # 게시글 CRUD, 추천, 스크랩, 이미지
+│   │   └── rankings/                # TREND/HOT/BEST 랭킹 + 매시간 Cron 배치
+│   ├── comments/                   # 댓글 작성/삭제
+│   ├── me/                         # 내 정보/내 활동(게시글·댓글·스크랩) 조회
+│   ├── chat/                       # 채팅방 REST API(생성/목록/메시지 조회)
+│   ├── events/gateways/            # Socket.IO 채팅 Gateway (실시간 송수신)
+│   ├── infra/
+│   │   ├── prisma/                  # Prisma 클라이언트 모듈
+│   │   └── s3client/                 # AWS S3 업로드 모듈
+│   ├── logger/                     # Winston 로깅 미들웨어/모듈
+│   └── common/                     # 전역 Guard, Pipe, Exception Filter, Decorator
+├── prisma/
+│   ├── schema.prisma                # DB 스키마 (User, Forum, Post, Comment, Chat 등)
+│   └── migrations/                  # 마이그레이션 이력
+├── nginx/                          # Nginx 리버스 프록시/로드밸런서 설정
+├── docker-compose.yml               # MySQL + App×3 + Nginx + Loki/Promtail/Grafana
+├── Dockerfile
+├── loki-config.yml / promtail-config.yml / grafana-datasources.yml  # 모니터링 스택 설정
+└── test/                           # e2e 테스트
 ```
 
-## Run tests
+## 📡 API 개요
 
-```bash
-# unit tests
-$ npm run test
+| 도메인 | 엔드포인트 |
+|---|---|
+| Auth | `POST /auth/register` `POST /auth/login` `POST /auth/refresh` `POST /auth/logout` `GET /auth/me` |
+| Forums | `POST /forums` `GET /forums` `GET /forums/:forumId` |
+| Posts | `POST /posts` `GET /posts` `GET /posts/:postId` `PATCH /posts/:postId` `DELETE /posts/:postId` `POST/DELETE /posts/:postId/postvote` `POST/DELETE /posts/:postId/scrap` |
+| Rankings | `GET /posts/rankings` |
+| Comments | `POST /comments` `DELETE /comments/:commentId` |
+| Me | `GET /me` `PATCH /me/username` `PATCH /me/email` `PATCH /me/password` `PUT /me/profile-image` `GET /me/posts` `GET /me/comments` `GET /me/scraps` |
+| Chat | `POST /chat/rooms` `GET /chat/rooms` `GET /chat/rooms/:roomId/messages` (+ WebSocket 실시간 이벤트) |
 
-# e2e tests
-$ npm run test:e2e
+## 🗄️ ERD
 
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
