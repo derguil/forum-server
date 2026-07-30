@@ -26,7 +26,7 @@ export class AuthService {
     const { username, email, password, password2 } = registerDto
 
     if (password !== password2) {
-      throw new BadRequestException('확인 비밀번호가 일치하지 않습니다.');
+      throw new BadRequestException('Password confirmation does not match.');
     }
     
     // const salt = await bcrypt.genSalt()
@@ -43,13 +43,13 @@ export class AuthService {
         const target = e.meta?.target;
         // console.log(target)
         if (target.includes('username')) {
-          throw new ConflictException('이미 존재하는 username입니다.');
+          throw new ConflictException('Username already exists.');
         }
         if (target.includes('email')) {
-          throw new ConflictException('이미 존재하는 email입니다.');
+          throw new ConflictException('Email already exists.');
         }
 
-        throw new ConflictException('중복된 값이 존재합니다.');
+        throw new ConflictException('A duplicate value exists.');
       }
       throw e;
     }
@@ -60,11 +60,11 @@ export class AuthService {
 
     const user = await this.userRepository.findByUsername(username);
     if (!user) {
-      throw new ConflictException('존재하지 않는 username입니다.');
+      throw new ConflictException('Username does not exist.');
     }
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
-      throw new ConflictException('비밀번호가 일치하지 않습니다.');
+      throw new ConflictException('Password does not match.');
     }
 
     const accessToken = await this.authGenerateTokenService.generateAccessToken(user.id, user.username)
@@ -79,13 +79,13 @@ export class AuthService {
     const user = await this.userRepository.findByIdWithRefreshToken(userId);
 
     if (!user || !user.hashedRefreshToken) {
-      throw new UnauthorizedException('로그인이 필요합니다.');
+      throw new UnauthorizedException('Login is required.');
     }
 
     const isMatch = await bcrypt.compare(refreshToken, user.hashedRefreshToken);
 
     if (!isMatch) {
-      throw new UnauthorizedException('유효하지 않은 refresh token입니다.');
+      throw new UnauthorizedException('Invalid refresh token.');
     }
 
     const newAccessToken = await this.authGenerateTokenService.generateAccessToken(user.id, user.username);
@@ -106,7 +106,7 @@ export class AuthService {
     const isMatch = await bcrypt.compare(refreshToken, user.hashedRefreshToken);
 
     if (!isMatch) {
-      throw new UnauthorizedException('유효하지 않은 refresh token입니다.');
+      throw new UnauthorizedException('Invalid refresh token.');
     }
 
     await this.userRepository.updateRefreshTokenHash(user.id, null);

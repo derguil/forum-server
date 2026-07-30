@@ -50,3 +50,6 @@ generated/prisma/
 *.sublime-workspace
 .DS_Store
 *.swp
+
+# Private keys
+*.pem

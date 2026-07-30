@@ -238,7 +238,7 @@ export class PostsService {
         postId,
         date: today,
       });
-      throw new ConflictException('공감?� 1??1?�만 가?�합?�다.');
+      throw new ConflictException('You can vote only once per day.');
     }
     
     const createdPostVote = await this.prisma.$transaction(async (tx) => {

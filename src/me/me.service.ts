@@ -18,7 +18,7 @@ export class MeService {
   async getMyPage(userId: number): Promise<{ username: string; email: string; profileImg: string | null }> {
     const user = await this.meRepository.findUserById(userId);
     if (!user) {
-      throw new NotFoundException('유저 정보를 찾을 수 없습니다');
+      throw new NotFoundException('User information not found.');
     }
 
     return {
@@ -31,12 +31,12 @@ export class MeService {
   async changeUsername(userId: number, changeUsernameDto: ChangeUsernameDto): Promise<{ message: string }> {
     const { username } = changeUsernameDto;
     if (!username) {
-      throw new BadRequestException('아이디가 필요합니다');
+      throw new BadRequestException('Username is required.');
     }
 
     const existing = await this.meRepository.findUserByUsername(username);
     if (existing && existing.id !== userId) {
-      throw new ConflictException('이미 사용 중인 아이디');
+      throw new ConflictException('Username is already in use.');
     }
 
     await this.meRepository.updateUsername(userId, username);
@@ -46,12 +46,12 @@ export class MeService {
   async changeEmail(userId: number, changeEmailDto: ChangeEmailDto): Promise<{ message: string }> {
     const { email } = changeEmailDto;
     if (!email) {
-      throw new BadRequestException('email이 필요합니다');
+      throw new BadRequestException('Email is required.');
     }
 
     const existing = await this.meRepository.findUserByEmail(email);
     if (existing && existing.id !== userId) {
-      throw new ConflictException('이미 사용 중인 이메일');
+      throw new ConflictException('Email is already in use.');
     }
 
     await this.meRepository.updateEmail(userId, email);
@@ -60,12 +60,12 @@ export class MeService {
 
   async changeProfileImage(userId: number, profileImg: Express.Multer.File): Promise<{ message: string; profileImg: string }> {
     if (!profileImg) {
-      throw new BadRequestException('프로필 이미지가 필요합니다');
+      throw new BadRequestException('Profile image is required.');
     }
 
     const user = await this.meRepository.findUserById(userId);
     if (!user) {
-      throw new NotFoundException('유저 정보를 찾을 수 없습니다');
+      throw new NotFoundException('User information not found.');
     }
 
     const uploaded = await this.s3ClientService.uploadProfileImage(profileImg, userId);
@@ -87,17 +87,17 @@ export class MeService {
     const { currentPassword, newPassword } = changePasswordDto;
 
     if (!currentPassword || !newPassword) {
-      throw new BadRequestException('비밀번호 정보가 필요합니다');
+      throw new BadRequestException('Password information is required.');
     }
 
     const user = await this.meRepository.findUserWithPasswordById(userId);
     if (!user) {
-      throw new NotFoundException('유저를 찾을 수 없습니다');
+      throw new NotFoundException('User not found.');
     }
 
     const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isMatch) {
-      throw new UnauthorizedException('현재 비밀번호가 틀렸습니다');
+      throw new UnauthorizedException('Current password is incorrect.');
     }
 
     const newPasswordHash = await bcrypt.hash(newPassword, 10);

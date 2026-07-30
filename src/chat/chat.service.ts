@@ -19,7 +19,7 @@ export class ChatService {
 
   private validateCreateRoomUsers(userId1: number, userId2: number) {
     if (userId1 === userId2) {
-      throw new BadRequestException('?ê¸° ?ì‹ ê³¼ëŠ” ì±„íŒ…ë°©ì„ ë§Œë“¤ ???†ìŠµ?ˆë‹¤.');
+      throw new BadRequestException('You cannot create a chat room with yourself.');
     }
   }
 
@@ -82,12 +82,12 @@ export class ChatService {
   async getRoomByIdForUser(roomId: number, userId: number) {
     const participant = await this.chatParticipantRepository.findParticipantByRoomAndUser(roomId, userId);
     if (!participant) {
-      throw new ForbiddenException('?´ë‹¹ ì±„íŒ…ë°?ì°¸ì—¬?ê? ?„ë‹™?ˆë‹¤.');
+      throw new ForbiddenException('You are not participating in this chat.');
     }
 
     const room = await this.chatRoomRepository.getRoomById(roomId);
     if (!room) {
-      throw new ForbiddenException('ì¡´ìž¬?˜ì? ?ŠëŠ” ì±„íŒ…ë°©ìž…?ˆë‹¤.');
+      throw new ForbiddenException('Chat room does not exist.');
     }
 
     return room;
@@ -142,12 +142,12 @@ export class ChatService {
 
   async sendMessage(roomId: number, senderId: number, content: string) {
     if (!content) {
-      throw new BadRequestException('ë©”ì‹œì§€ ?´ìš©??ë¹„ì–´ ?ˆìŠµ?ˆë‹¤.');
+      throw new BadRequestException('Message content is empty.');
     }
 
     const participant = await this.chatParticipantRepository.findParticipantByRoomAndUser(roomId, senderId);
     if (!participant) {
-      throw new ForbiddenException('?´ë‹¹ ì±„íŒ…ë°?ì°¸ì—¬?ê? ?„ë‹™?ˆë‹¤.');
+      throw new ForbiddenException('You are not participating in this chat.');
     }
 
     const message = await this.prisma.$transaction(async (tx) => {

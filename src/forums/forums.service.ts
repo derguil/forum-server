@@ -49,9 +49,9 @@ export class ForumsService {
         });
 
         if (target?.includes('title')) {
-          throw new ConflictException('이미 존재하는 title입니다.');
+          throw new ConflictException('Title already exists.');
         }
-        throw new ConflictException('중복된 값이 존재합니다.');
+        throw new ConflictException('A duplicate value exists.');
       }
 
       this.logger.error('addForum failed: unhandled error', {

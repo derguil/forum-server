@@ -91,7 +91,7 @@ describe('AuthService', () => {
           password: 'pw1',
           password2: 'pw2',
         }),
-      ).rejects.toThrow(new BadRequestException('확인 비밀번호가 일치하지 않습니다.'));
+      ).rejects.toThrow(new BadRequestException('Password confirmation does not match.'));
     });
 
     it('username 중복 시 ConflictException을 던져야 한다', async () => {
@@ -107,7 +107,7 @@ describe('AuthService', () => {
           password: 'pw',
           password2: 'pw',
         }),
-      ).rejects.toThrow(new ConflictException('이미 존재하는 username입니다.'));
+      ).rejects.toThrow(new ConflictException('Username already exists.'));
     });
 
     it('정상 입력이면 createUser가 호출되어야 한다', async () => {

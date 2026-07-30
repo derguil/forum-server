@@ -96,7 +96,7 @@ describe('ForumsService', () => {
 
       // then: 특정 메시지의 ConflictException이 발생하는지 검증
       await expect(service.addForum(createForumDto, userId)).rejects.toThrow(
-        new ConflictException('이미 존재하는 title입니다.'),
+        new ConflictException('Title already exists.'),
       );
     });
 
@@ -109,7 +109,7 @@ describe('ForumsService', () => {
       forumRepository.createForum.mockRejectedValue(prismaError);
 
       await expect(service.addForum(createForumDto, userId)).rejects.toThrow(
-        new ConflictException('중복된 값이 존재합니다.'),
+        new ConflictException('A duplicate value exists.'),
       );
     });
 
